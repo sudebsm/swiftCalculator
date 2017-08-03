@@ -33,14 +33,19 @@ struct CalculatorBrain {
         "cos":Operation.UneryOperation(cos),
         "sin":Operation.UneryOperation(sin),
         "tan":Operation.UneryOperation(tan),
-        "±":Operation.UneryOperation(changeSign)
+        "±":Operation.UneryOperation({ -$0 }),
+        "+":Operation.BinaryOperation({ $0 + $1}),
+        "-":Operation.BinaryOperation({ $0 - $1}),
+        "*":Operation.BinaryOperation({ $0 * $1}),
+        "/":Operation.BinaryOperation({ $0 / $1}),
+        "=":Operation.Equels
     ]
     
     
     
     
     
-    var accumulator : Double = 0.0
+    var accumulator : Double?
     
     mutating func performOperation(symbol : String)  {
         if let operation = Operations[symbol] {
@@ -49,12 +54,48 @@ struct CalculatorBrain {
                 accumulator = selValue
                 break
             case .UneryOperation(let function):
-                accumulator = function(accumulator)
+                if accumulator != nil {
+                    accumulator = function(accumulator!)
+                }
+                break
+            case .BinaryOperation(let function):
+                if accumulator != nil {
+                    pbo=PendingBinaryOperation(function:function, firstOperand:accumulator!)
+                    accumulator = nil
+                }
+                break
+            case .Equels:
+                performPendingBinaryOperation()
                 break
             default:
-                accumulator = 0.0
+                break
             }
         }
+        
+    }
+    
+    
+    private mutating func performPendingBinaryOperation()  {
+        if pbo != nil && accumulator != nil {
+            accumulator = pbo!.perform(with: accumulator!)
+            pbo = nil
+        }
+    }
+    
+    
+    
+    var pbo:PendingBinaryOperation?
+    
+    
+    struct PendingBinaryOperation {
+        
+        let function:(Double,Double)->Double
+        let firstOperand:Double
+        
+        func perform(with secondOperand: Double) -> Double {
+            return function(firstOperand,secondOperand)
+        }
+        
         
     }
     
